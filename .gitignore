@@ -1,0 +1,13 @@
+__pycache__/
+.pytest_cache/
+.venv/
+node_modules/
+dist/
+.aws-sam/
+build/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+*.pyc
