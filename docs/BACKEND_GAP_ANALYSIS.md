@@ -122,7 +122,7 @@ The frontend calls all of these except the legacy/direct analysis endpoints (`/f
 - File selection records name, MIME type, and hardcoded `row_count: 90`; bytes are discarded and no S3 upload occurs.
 - `historical_sales_source` defaults to `S3`, but the request flow does not create or use an S3 object.
 - Region and store responses are hardcoded Python lists containing only South India/Bangalore and West Coast/San Jose.
-- Product and sales history come from `data/synthetic_dataset.json` (20 products, 90-day history), loaded by an in-process cache.
+- Product and sales history come from `backend/data/synthetic_dataset.json` (20 products, 90-day history), loaded by an in-process cache.
 - The repository for requests, recommendations, and audit events is process-local memory. Data disappears on Lambda cold start/redeploy and is not shared across workers.
 - Analytics fallback values in `App.jsx` are placeholders used if `/analytics` fails; the UI can display zeros rather than an error.
 - `clampInventoryRows()` limits the initial draft to three products, which is frontend behavior rather than catalog persistence.

@@ -8,7 +8,6 @@ except ImportError:  # Local test environments may not install Lambda extras.
     Mangum = None
 
 from .api.routes import router
-from .services.pipeline import AnalyticsService
 from .services.monitoring import InventoryMonitoringService
 
 

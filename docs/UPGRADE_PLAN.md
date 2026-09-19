@@ -15,7 +15,7 @@ The repository is a fresh scaffold with no git commits yet. The current implemen
 - Storage: optional DynamoDB and S3 adapter in `backend/app/aws/storage.py`
 - Infra: AWS SAM template in `infra/template.yaml`
 - Tests: Pytest API and engine tests in `tests/`
-- Dataset: synthetic product history in `data/synthetic_dataset.json`
+- Dataset: synthetic product history in `backend/data/synthetic_dataset.json`
 
 ### Existing Functionality
 

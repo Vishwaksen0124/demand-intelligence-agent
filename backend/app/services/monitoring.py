@@ -4,7 +4,7 @@ import logging
 from uuid import uuid4
 
 from ..core.alerts import ALERT_REPOSITORY, AlertRepository
-from ..core.catalog import get_history, get_product, list_products
+from ..core.catalog import get_history, list_products
 from ..core.decision import decide
 from ..core.forecast import calculate_forecast
 from ..core.inventory import calculate_inventory

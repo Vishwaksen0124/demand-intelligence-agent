@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "data" / "synthetic_dataset.json"
+OUTPUT = ROOT / "backend" / "data" / "synthetic_dataset.json"
 
 
 def product_blueprints():

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
 const identityKey = 'demand-intelligence-agent.identity'
-const cognitoPoolId = import.meta.env.VITE_COGNITO_USER_POOL_ID || ''
 const cognitoClientId = import.meta.env.VITE_COGNITO_APP_CLIENT_ID || ''
 const cognitoRegion = import.meta.env.VITE_COGNITO_REGION || 'us-east-2'
 
@@ -51,15 +50,6 @@ async function cognitoLogin(username, password) {
   const groups = claims['cognito:groups'] || []
   const role = groups.includes('EMPLOYEE') ? 'EMPLOYEE' : groups.includes('ADMIN') ? 'ADMIN' : 'CUSTOMER'
   return { userId: claims.sub || claims.username, email: claims.email || username, role, idToken: payload.AuthenticationResult.IdToken, accessToken: payload.AuthenticationResult.AccessToken, refreshToken: payload.AuthenticationResult.RefreshToken }
-}
-
-async function uploadHistoricalSales(file, identity) {
-  const form = new FormData()
-  form.append('file', file)
-  const response = await fetch(`${apiBase}/historical-sales/upload`, { method: 'POST', headers: identity?.idToken ? { Authorization: `Bearer ${identity.idToken}` } : {}, body: form })
-  const payload = await response.json()
-  if (!response.ok) throw new Error(payload?.detail || 'Historical sales upload failed')
-  return payload
 }
 
 async function apiJson(path, { identity = null, method = 'GET', body } = {}) {
