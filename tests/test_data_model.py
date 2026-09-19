@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 
 from app.core.data import DataRepository
-from app.core.models import (AuditEvent, Forecast, Inventory, Product, Recommendation, Region, RequestStatus, Sale, Store, User, UserRole, InventoryRequest)
+from app.core.models import (AuditEvent, Forecast, Inventory, Product, Recommendation, Region, Sale, Store, UserRole, InventoryRequest)
 
 def repo():
     r = DataRepository()

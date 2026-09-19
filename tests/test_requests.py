@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.core.models import AuditEvent, InventoryItem, InventoryRequest, Region, RequestStatus, UserRole
+from app.core.models import InventoryItem, InventoryRequest, Region, RequestStatus, UserRole
 from app.core.requests import REQUEST_REPOSITORY
 
 
