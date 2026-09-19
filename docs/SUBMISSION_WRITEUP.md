@@ -1,60 +1,89 @@
 # DemandOps AI
 
-## AI-powered demand intelligence with humans in control
+## Problem
 
-DemandOps AI helps retail and operations teams make faster, safer inventory decisions. It combines backend-owned historical demand data, deterministic forecasting, inventory mathematics, and Bedrock Mantle reasoning into one auditable workflow.
+Inventory teams often make purchasing decisions using fragmented historical sales data, changing demand, and limited visibility into future stockout risks. This can lead to overstocking, stockouts, and purchasing decisions that are difficult to explain.
+
+## Solution
+
+DemandOps AI is an AI-powered demand and inventory decision platform that analyzes historical demand, identifies trends, forecasts future requirements, calculates inventory risk, and provides explainable AI recommendations.
+
+The key principle is:
 
 > **AI recommends. Humans decide.**
 
-## The problem
+The system never allows AI to automatically approve or place an order. An employee reviews each recommendation and can modify, approve, or reject it.
 
-Inventory teams often work across disconnected spreadsheets, incomplete demand signals, and opaque recommendations. This creates two expensive failure modes:
-
-- stockouts when demand rises faster than replenishment decisions;
-- overstock when teams order without a reliable view of demand, lead time, and safety stock.
-
-The operational challenge is not just producing a forecast. Teams need to understand why an action is recommended, verify the numbers, and retain a clear record of who made the final decision.
-
-## Our solution
-
-DemandOps AI creates a request-specific decision workspace:
-
-1. A customer selects a business region and store, adds products, enters current inventory, and chooses a forecast horizon.
-2. The backend loads and filters historical demand data automatically. Customers never upload or manually provide historical sales.
-3. Deterministic Python services calculate trend, forecast demand, safety stock, reorder point, stockout timing, order quantity, and risk.
-4. Bedrock Mantle receives structured facts and generates an explainable recommendation.
-5. An employee reviews the recommendation, can modify the quantity or priority, and explicitly approves or rejects it.
-6. Every important transition is persisted in an append-oriented audit trail.
-
-The system separates three layers clearly:
-
-| Layer | Responsibility |
-| --- | --- |
-| System calculation | Forecast and inventory mathematics |
-| AI recommendation | Reasoning, explanation, risk interpretation |
-| Employee decision | Modify, approve, or reject |
-
-## Why this approach is trustworthy
-
-The model is not asked to perform arithmetic. Forecast quantity, safety stock, reorder point, and recommended order quantity are calculated by deterministic backend code. Bedrock Mantle reasons over those supplied facts and cannot approve an order.
-
-The original AI recommendation is preserved when an employee modifies it. For example:
+## How It Works
 
 ```text
-AI recommendation:       70 units
-Employee decision:        60 units
-Modification reason:      Supplier shipment arriving tomorrow.
-Final decision:           APPROVED
+Historical Sales Dataset
+        ↓
+Demand & Trend Analysis
+        ↓
+Deterministic Forecast
+        ↓
+Inventory Calculations
+        ↓
+Risk Analysis
+        ↓
+Amazon Bedrock Mantle
+        ↓
+AI Recommendation
+        ↓
+Employee Review
+        ↓
+Modify / Approve / Reject
+        ↓
+Audit Trail
 ```
 
-This gives the team both explainability and accountability.
+Historical sales are maintained by the backend. Customers do not upload historical data.
 
-## Architecture
+For each customer request, the backend automatically loads relevant demand history for the requested products and store/region, analyzes trends, and generates a deterministic forecast.
+
+The system calculates:
+
+- average daily demand;
+- safety stock;
+- reorder point;
+- days until stockout;
+- recommended order quantity;
+- stockout risk;
+- overstock risk.
+
+These deterministic results are provided to Amazon Bedrock Mantle, which generates an explainable recommendation containing priority, reasoning, confidence, and recommended quantity.
+
+## Human-in-the-Loop
+
+DemandOps separates three layers:
+
+### System Calculation
 
 ```text
-Customer / Employee
-        |
-        v
+Calculated Order Quantity: 110
+```
+
+### AI Recommendation
+
+```text
+Recommended Quantity: 110
+Priority: HIGH
+Confidence: 89.9%
+```
+
+### Employee Decision
+
+```text
+Final Quantity: 60
+Decision: APPROVED
+```
+
+The original AI recommendation is preserved even when an employee modifies it. Every important action is recorded in an append-oriented audit trail.
+
+## AWS Architecture
+
+```text
 Amplify-hosted React frontend
         |
         | Cognito JWT
@@ -62,7 +91,7 @@ Amplify-hosted React frontend
 API Gateway
         |
         v
-Lambda + FastAPI
+AWS Lambda / FastAPI
    |       |        |          |
    |       |        |          +--> Bedrock Mantle / GPT-OSS-20B
    |       |        +-------------> S3
@@ -72,104 +101,90 @@ Lambda + FastAPI
 EventBridge daily schedule
         |
         v
-Inventory monitoring Lambda --> risk calculation --> persisted alerts
+Monitoring Lambda → risk calculation → persisted alerts
 ```
 
-## AWS implementation
+DemandOps uses:
 
-- **Amazon Cognito** authenticates customers and employees with JWTs and role groups.
-- **Amazon API Gateway** exposes the protected production API.
-- **AWS Lambda** runs the FastAPI application and the scheduled monitoring workflow.
-- **Amazon DynamoDB** persists requests, forecasts, recommendations, audit events, alerts, and analysis records using the deployed single-table design.
-- **Amazon S3** supports configured application artifacts and dataset/file storage.
-- **Amazon Bedrock Mantle** provides the production AI reasoning path through the OpenAI-compatible API using AWS SigV4.
-- **Amazon EventBridge** runs daily inventory monitoring without approving or placing orders.
-- **Amazon CloudWatch** receives Lambda execution and error logs.
-- **AWS SAM/CloudFormation** defines the backend infrastructure reproducibly.
-- **AWS Amplify** hosts the React frontend.
+- **Amazon Bedrock Mantle** for AI reasoning and recommendations;
+- **AWS Lambda** for backend processing;
+- **Amazon API Gateway** for APIs;
+- **Amazon DynamoDB** for persistent application state;
+- **Amazon Cognito** for authentication and authorization;
+- **Amazon S3** for application/data storage where applicable;
+- **Amazon EventBridge** for scheduled inventory monitoring;
+- **AWS Amplify** for frontend deployment;
+- **Amazon CloudWatch** for logging and observability;
+- **AWS IAM** for access control.
 
 Production region: `us-east-2`.
 
-## Historical demand data
+## Why AI?
 
-Historical sales are backend-owned. The current deployed dataset is `backend/data/synthetic_dataset.json`. The backend checks persisted store/product sales where available and falls back to product-level history when store-specific history is unavailable.
+Traditional forecasting and inventory calculations remain deterministic and explainable.
 
-The frontend sends only customer-owned request information:
+AI is used where it provides additional value: interpreting operational facts, prioritizing risks, explaining recommendations, and providing context for the employee.
 
-- country, state, city, and business region;
-- store;
-- products and current inventory;
-- forecast horizon;
-- optional budget.
+This prevents the AI from inventing inventory numbers or silently making purchasing decisions.
 
-It does not send historical rows, CSV contents, forecasts, risk values, or AI recommendations.
-
-## Employee control loop
-
-Employees receive a review queue filtered by region, store, status, and priority. The review view surfaces:
-
-- current inventory;
-- demand trend and forecast;
-- safety stock and reorder point;
-- days until stockout;
-- calculated order quantity;
-- risk classification;
-- AI reasoning and confidence;
-- complete audit history.
-
-Approval and rejection are employee-only actions. Customers can view their own requests but cannot access employee analytics, modify recommendations, approve, or reject.
-
-## Autonomous monitoring
-
-The daily EventBridge workflow independently scans active inventory, calculates risk, and persists alerts for employee review. It never automatically approves a recommendation or places an order. This preserves human control even when monitoring is automated.
-
-## Demonstration flow
+## Key Features
 
 ### Customer
 
-1. Sign in with Cognito.
-2. Select Bangalore / South India / BLR-042.
-3. Add multiple products with different current inventory values.
-4. Choose a seven- or fourteen-day horizon.
-5. Submit the request.
-6. Review the deterministic forecast, inventory metrics, risk, and AI recommendation.
+- secure Cognito authentication;
+- region and store selection;
+- dynamic product inventory;
+- forecast horizon selection;
+- request creation and tracking;
+- forecast and risk visibility;
+- AI recommendation visibility.
+
+Historical sales are backend-owned. The customer request contains only location, products, current inventory, forecast horizon, and optional budget.
 
 ### Employee
 
-1. Sign in with the employee Cognito account.
-2. Open the review queue.
-3. Inspect the request and calculations.
-4. Change the recommended quantity from 70 to 60.
-5. Add a business reason.
-6. Approve or reject the final decision.
-7. Verify the append-only audit timeline.
+- review queue;
+- risk prioritization;
+- demand and forecast analysis;
+- AI recommendation reasoning;
+- recommendation modification;
+- approval and rejection;
+- alerts and analytics;
+- complete audit history.
 
-## Results
+## Security and Trust
 
-- 34 backend tests passing.
-- Cognito JWT authentication and server-side role enforcement.
-- Persistent request, forecast, recommendation, and audit workflow.
-- Deterministic forecast and inventory calculations.
-- Bedrock Mantle integration using `openai.gpt-oss-20b`.
-- Employee modification, approval, and rejection workflow.
-- Daily EventBridge monitoring and persisted alerts.
-- Production frontend deployed through Amplify.
+Amazon Cognito issues JWTs. The backend derives user identity and role from validated claims rather than trusting frontend-supplied identity fields.
 
-## What makes DemandOps AI different
+Customers can access only their own requests. Employee actions are protected server-side. Customers cannot modify, approve, reject, or access employee-only workflows.
 
-DemandOps AI is designed around the operational decision, not just the prediction. It combines:
+## Impact
 
-- quantitative calculations teams can inspect;
-- AI reasoning teams can understand;
-- employee control teams can trust;
-- audit history teams can prove.
+DemandOps AI turns historical demand data into actionable inventory intelligence while keeping the final decision with a human operator.
 
-The result is an AI-assisted inventory system that is useful in the moment and accountable after the decision is made.
+It provides a transparent chain:
 
-## Repository and demo
+**Historical Data → Forecast → Inventory Math → Risk → AI Reasoning → Human Decision**
+
+rather than treating AI as a black-box autonomous ordering system.
+
+## Deployment and Demo
 
 - Repository: https://github.com/Vishwaksen0124/demand-intelligence-agent
 - Frontend: https://main.d2ywbbgebajkuj.amplifyapp.com
-- API: https://fvlyc576k7.execute-api.us-east-2.amazonaws.com/Prod
-- Architecture details: [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md)
-- Demo notes: [demo.md](demo.md)
+- API: `https://fvlyc576k7.execute-api.us-east-2.amazonaws.com/Prod`
+- Dataset: `backend/data/synthetic_dataset.json`
+- AI model: `openai.gpt-oss-20b` through Bedrock Mantle
+- Tests: 34 backend tests passing
+
+The complete demo is:
+
+```text
+Customer login
+→ Create request
+→ Deterministic forecast and inventory analysis
+→ Bedrock Mantle recommendation
+→ Employee review
+→ Modification or approval/rejection
+→ Persisted audit trail
+```
