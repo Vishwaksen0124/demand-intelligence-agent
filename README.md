@@ -36,6 +36,8 @@ Set `VITE_API_BASE_URL` before building the frontend for a deployed API.
 ## Key docs
 
 - [SPEC.md](SPEC.md)
+- [Submission write-up](docs/SUBMISSION_WRITEUP.md)
+- [Project architecture](docs/PROJECT_ARCHITECTURE.md)
 - [docs/architecture.md](docs/architecture.md)
 - [docs/deployment.md](docs/deployment.md)
 - [docs/demo.md](docs/demo.md)
